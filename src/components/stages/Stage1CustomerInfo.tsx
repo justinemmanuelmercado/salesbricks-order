@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -23,14 +23,7 @@ const customerInfoSchema = z.object({
   name: z.string().min(1, 'Customer account is required'),
   prePopulated: z.boolean(),
   companyAddress: companyAddressSchema.optional(),
-}).refine((data) => {
-  if (data.prePopulated && !data.companyAddress) {
-    return false;
-  }
-  return true;
-}, {
-  path: ['companyAddress'],
-});
+})
 
 type CustomerInfoFormData = z.infer<typeof customerInfoSchema>;
 
@@ -45,19 +38,35 @@ export const Stage1CustomerInfo: React.FC<Stage1CustomerInfoProps> = ({ onNext }
     resolver: zodResolver(customerInfoSchema),
     defaultValues: {
       name: order.customerName,
-      prePopulated: !!order.customerAddress,
-      companyAddress: order.customerAddress || {
+      prePopulated: false,
+      companyAddress: {
         addressLine1: '',
         addressLine2: '',
         city: '',
         state: '',
-        zipCode: '',
-      },
+        zipCode: '',  
+      }
     },
   });
 
   const { handleSubmit, watch } = methods;
   const prePopulated = watch('prePopulated');
+
+  useEffect(() => {
+    if (!prePopulated) {
+      methods.setValue('companyAddress', undefined);
+    }
+
+    if (prePopulated) {
+      methods.setValue('companyAddress', {
+        addressLine1: '',
+        addressLine2: '',
+        city: '',
+        state: '',
+        zipCode: '',  
+      });
+    }
+  }, [prePopulated, methods]);
 
   const onSubmit = (data: CustomerInfoFormData) => {
     updateOrder({

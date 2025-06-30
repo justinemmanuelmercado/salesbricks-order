@@ -164,11 +164,11 @@ export const Stage2ProductSelection: React.FC<Stage2ProductSelectionProps> = ({ 
                                     className="w-24"
                                     autoFocus
                                   />
-                                ) : (
-                                  <span className="text-lg font-semibold">
-                                    ${getDisplayPrice(plan)}/{plan.priceInterval}
-                                  </span>
-                                )}
+                                                                 ) : (
+                                   <span className="text-lg font-semibold">
+                                     ${getDisplayPrice(plan)}/mo
+                                   </span>
+                                 )}
                                 <Button
                                   type="button"
                                   variant="outline"

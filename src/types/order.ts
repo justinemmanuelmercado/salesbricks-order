@@ -28,7 +28,6 @@ export interface Plan {
   id: string;
   name: string;
   defaultPrice: number;
-  priceInterval: 'mo' | 'yr';
 }
 
 export interface AddOn {

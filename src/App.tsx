@@ -1,4 +1,3 @@
-import React from 'react';
 import { OrderProvider } from './contexts/OrderContext';
 import { OrderBuilder } from './components/OrderBuilder';
 import './App.css';

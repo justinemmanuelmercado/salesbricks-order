@@ -1,0 +1,171 @@
+import React from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { useOrder } from '@/contexts/useOrder';
+
+const contractTermsSchema = z.object({
+  startDate: z.string().min(1, 'Start date is required').refine((date) => {
+    const parsedDate = new Date(date);
+    return !isNaN(parsedDate.getTime());
+  }, 'Please enter a valid date'),
+  contractPeriod: z.string().min(1, 'Contract period is required'),
+});
+
+type ContractTermsFormData = z.infer<typeof contractTermsSchema>;
+
+interface Stage3ContractTermsProps {
+  onNext: () => void;
+  onPrevious: () => void;
+}
+
+export const Stage3ContractTerms: React.FC<Stage3ContractTermsProps> = ({ onNext, onPrevious }) => {
+  const { order, updateOrder } = useOrder();
+
+  const getInitialContractPeriod = () => {
+    if (!order.contractPeriodInMonths) return '';
+    const months = order.contractPeriodInMonths;
+    if ([6, 12, 24, 36].includes(months)) {
+      return months.toString();
+    }
+    return '';
+  };
+
+  const methods = useForm<ContractTermsFormData>({
+    resolver: zodResolver(contractTermsSchema),
+    defaultValues: {
+      startDate: order.startDate || '',
+      contractPeriod: getInitialContractPeriod(),
+    },
+  });
+
+  const { handleSubmit, watch } = methods;
+  const startDate = watch('startDate');
+  const contractPeriod = watch('contractPeriod');
+
+  const calculateEndDate = (start: string, months: number): string => {
+    if (!start || months <= 0) return '';
+    
+    try {
+      const startDateObj = new Date(start);
+      if (isNaN(startDateObj.getTime())) return '';
+      const endDateObj = new Date(startDateObj);
+      endDateObj.setMonth(endDateObj.getMonth() + months);
+      endDateObj.setDate(endDateObj.getDate() - 1);
+      
+      return endDateObj.toISOString().split('T')[0];
+    } catch {
+      return '';
+    }
+  };
+
+  const getCurrentEndDate = (): string => {
+    if (!startDate || !contractPeriod) return '';
+    const months = parseInt(contractPeriod);
+    return calculateEndDate(startDate, months);
+  };
+
+  const onSubmit = (data: ContractTermsFormData) => {
+    const months = parseInt(data.contractPeriod);
+    const endDate = calculateEndDate(data.startDate, months);
+    
+    updateOrder({
+      startDate: data.startDate,
+      contractPeriodInMonths: months,
+      endDate,
+    });
+    
+    onNext();
+  };
+
+  return (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>Contract Terms</CardTitle>
+        <CardDescription>
+          Define the contract start date and duration
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <FormProvider {...methods}>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={methods.control}
+              name="startDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Start Date *</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="date" 
+                      {...field}
+                      value={field.value || ''}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={methods.control}
+              name="contractPeriod"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contract Period *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select contract period" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="6">6 months</SelectItem>
+                      <SelectItem value="12">12 months</SelectItem>
+                      <SelectItem value="24">24 months</SelectItem>
+                      <SelectItem value="36">36 months</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {startDate && contractPeriod && getCurrentEndDate() && (
+              <FormItem>
+                <FormLabel>End Date</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="date" 
+                    value={getCurrentEndDate()} 
+                    readOnly 
+                    className="bg-gray-50 cursor-not-allowed"
+                    tabIndex={-1}
+                  />
+                </FormControl>
+                <p className="text-sm text-gray-600">
+                  Automatically calculated based on start date and contract period
+                </p>
+              </FormItem>
+            )}
+
+            <div className="flex justify-between">
+              <Button type="button" variant="outline" onClick={onPrevious}>
+                Previous: Product Selection
+              </Button>
+              <Button type="submit">
+                Next: Review & Finalize
+              </Button>
+            </div>
+          </form>
+        </FormProvider>
+      </CardContent>
+    </Card>
+  );
+}; 

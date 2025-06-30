@@ -2,6 +2,7 @@ import React from 'react';
 import { useOrder } from '@/contexts/useOrder';
 import { Stage1CustomerInfo } from './stages/Stage1CustomerInfo';
 import { Stage2ProductSelection } from './stages/Stage2ProductSelection';
+import { Stage3ContractTerms } from './stages/Stage3ContractTerms';
 
 export const OrderBuilder: React.FC = () => {
   const { currentStage, setCurrentStage } = useOrder();
@@ -24,15 +25,17 @@ export const OrderBuilder: React.FC = () => {
       case 2:
         return <Stage2ProductSelection onNext={handleNext} onPrevious={handlePrevious} />;
       case 3:
+        return <Stage3ContractTerms onNext={handleNext} onPrevious={handlePrevious} />;
+      case 4:
         return (
           <div className="text-center p-8">
-            <h2 className="text-2xl font-bold">Stage 3: Contract Terms</h2>
+            <h2 className="text-2xl font-bold">Stage 4: Review & Finalize</h2>
             <p className="text-gray-600 mt-2">Coming soon...</p>
             <button 
               onClick={handlePrevious}
               className="mt-4 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
             >
-              Back to Product Selection
+              Back to Contract Terms
             </button>
           </div>
         );

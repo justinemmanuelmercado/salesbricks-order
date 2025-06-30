@@ -16,7 +16,7 @@ const initialOrder: Order = {
   selectedPlanId: null,
   customPlanPrice: null,
   startDate: null,
-  contractPeriodInMonths: 12,
+  contractPeriodInMonths: 1,
   endDate: null,
   selectedAddOns: [],
 };

@@ -15,6 +15,15 @@ const contractTermsSchema = z.object({
     return !isNaN(parsedDate.getTime());
   }, 'Please enter a valid date'),
   contractPeriod: z.string().min(1, 'Contract period is required'),
+  customDuration: z.coerce.number().min(1, 'Custom duration must be at least 1 month').optional(),
+}).refine((data) => {
+  if (data.contractPeriod === 'custom') {
+    return data.customDuration !== undefined && data.customDuration >= 1;
+  }
+  return true;
+}, {
+  message: 'Custom duration must be at least 1 month',
+  path: ['customDuration'],
 });
 
 type ContractTermsFormData = z.infer<typeof contractTermsSchema>;
@@ -33,7 +42,16 @@ export const Stage3ContractTerms: React.FC<Stage3ContractTermsProps> = ({ onNext
     if ([6, 12, 24, 36].includes(months)) {
       return months.toString();
     }
-    return '';
+    return 'custom';
+  };
+
+  const getInitialCustomDuration = () => {
+    if (!order.contractPeriodInMonths) return undefined;
+    const months = order.contractPeriodInMonths;
+    if (![6, 12, 24, 36].includes(months)) {
+      return months;
+    }
+    return undefined;
   };
 
   const methods = useForm<ContractTermsFormData>({
@@ -41,12 +59,14 @@ export const Stage3ContractTerms: React.FC<Stage3ContractTermsProps> = ({ onNext
     defaultValues: {
       startDate: order.startDate || '',
       contractPeriod: getInitialContractPeriod(),
+      customDuration: getInitialCustomDuration(),
     },
   });
 
   const { handleSubmit, watch } = methods;
   const startDate = watch('startDate');
   const contractPeriod = watch('contractPeriod');
+  const customDuration = watch('customDuration');
 
   const calculateEndDate = (start: string, months: number): string => {
     if (!start || months <= 0) return '';
@@ -54,6 +74,7 @@ export const Stage3ContractTerms: React.FC<Stage3ContractTermsProps> = ({ onNext
     try {
       const startDateObj = new Date(start);
       if (isNaN(startDateObj.getTime())) return '';
+      
       const endDateObj = new Date(startDateObj);
       endDateObj.setMonth(endDateObj.getMonth() + months);
       endDateObj.setDate(endDateObj.getDate() - 1);
@@ -64,14 +85,25 @@ export const Stage3ContractTerms: React.FC<Stage3ContractTermsProps> = ({ onNext
     }
   };
 
+  const getCurrentMonths = (): number => {
+    if (contractPeriod === 'custom') {
+      return customDuration || 0;
+    } else if (contractPeriod) {
+      const parsed = parseInt(contractPeriod);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  };
+
   const getCurrentEndDate = (): string => {
-    if (!startDate || !contractPeriod) return '';
-    const months = parseInt(contractPeriod);
+    const months = getCurrentMonths();
     return calculateEndDate(startDate, months);
   };
 
   const onSubmit = (data: ContractTermsFormData) => {
-    const months = parseInt(data.contractPeriod);
+    const months = data.contractPeriod === 'custom' 
+      ? data.customDuration || 0 
+      : parseInt(data.contractPeriod);
     const endDate = calculateEndDate(data.startDate, months);
     
     updateOrder({
@@ -130,6 +162,7 @@ export const Stage3ContractTerms: React.FC<Stage3ContractTermsProps> = ({ onNext
                       <SelectItem value="12">12 months</SelectItem>
                       <SelectItem value="24">24 months</SelectItem>
                       <SelectItem value="36">36 months</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -137,23 +170,47 @@ export const Stage3ContractTerms: React.FC<Stage3ContractTermsProps> = ({ onNext
               )}
             />
 
-            {startDate && contractPeriod && getCurrentEndDate() && (
-              <FormItem>
-                <FormLabel>End Date</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="date" 
-                    value={getCurrentEndDate()} 
-                    readOnly 
-                    className="bg-gray-50 cursor-not-allowed"
-                    tabIndex={-1}
-                  />
-                </FormControl>
-                <p className="text-sm text-gray-600">
-                  Automatically calculated based on start date and contract period
-                </p>
-              </FormItem>
+            {contractPeriod === 'custom' && (
+              <FormField
+                control={methods.control}
+                name="customDuration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Custom Duration (months) *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="1"
+                        placeholder="Enter number of months"
+                        {...field}
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value === '' ? undefined : parseInt(value) || undefined);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
+
+            <FormItem>
+              <FormLabel>End Date</FormLabel>
+              <FormControl>
+                <Input 
+                  type="date" 
+                  value={getCurrentEndDate()} 
+                  readOnly 
+                  className="bg-gray-50 cursor-not-allowed"
+                  tabIndex={-1}
+                />
+              </FormControl>
+              <p className="text-sm text-gray-600">
+                Automatically calculated based on start date and contract period
+              </p>
+            </FormItem>
 
             <div className="flex justify-between">
               <Button type="button" variant="outline" onClick={onPrevious}>

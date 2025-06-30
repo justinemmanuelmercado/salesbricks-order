@@ -11,24 +11,25 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/comp
 import { useOrder } from '@/contexts/useOrder';
 import { US_STATES } from '@/constants/states';
 
+const companyAddressSchema = z.object({
+  addressLine1: z.string().min(1, 'Address line 1 is required'),
+  addressLine2: z.string().optional(),
+  city: z.string().min(1, 'City is required'),
+  state: z.string().min(1, 'State is required'),
+  zipCode: z.string().min(1, 'Zip code is required'),
+});
+
 const customerInfoSchema = z.object({
-  customerName: z.string().min(1, 'Customer name is required'),
-  prePopulateCustomerInformation: z.boolean(),
-  customerAddress: z.object({
-    addressLine1: z.string().min(1, 'Address line 1 is required'),
-    addressLine2: z.string().optional(),
-    city: z.string().min(1, 'City is required'),
-    state: z.string().min(1, 'State is required'),
-    zipCode: z.string().min(1, 'ZIP code is required'),
-  }).optional(),
+  name: z.string().min(1, 'Customer account is required'),
+  prePopulated: z.boolean(),
+  companyAddress: companyAddressSchema.optional(),
 }).refine((data) => {
-  if (data.prePopulateCustomerInformation) {
-    return data.customerAddress !== undefined;
+  if (data.prePopulated && !data.companyAddress) {
+    return false;
   }
   return true;
 }, {
-  message: 'Address information is required when prepopulate is checked',
-  path: ['customerAddress'],
+  path: ['companyAddress'],
 });
 
 type CustomerInfoFormData = z.infer<typeof customerInfoSchema>;
@@ -43,9 +44,9 @@ export const Stage1CustomerInfo: React.FC<Stage1CustomerInfoProps> = ({ onNext }
   const methods = useForm<CustomerInfoFormData>({
     resolver: zodResolver(customerInfoSchema),
     defaultValues: {
-      customerName: order.customerName,
-      prePopulateCustomerInformation: !!order.customerAddress,
-      customerAddress: order.customerAddress || {
+      name: order.customerName,
+      prePopulated: !!order.customerAddress,
+      companyAddress: order.customerAddress || {
         addressLine1: '',
         addressLine2: '',
         city: '',
@@ -56,12 +57,12 @@ export const Stage1CustomerInfo: React.FC<Stage1CustomerInfoProps> = ({ onNext }
   });
 
   const { handleSubmit, watch } = methods;
-  const prePopulateCustomerInformation = watch('prePopulateCustomerInformation');
+  const prePopulated = watch('prePopulated');
 
   const onSubmit = (data: CustomerInfoFormData) => {
     updateOrder({
-      customerName: data.customerName,
-      customerAddress: data.prePopulateCustomerInformation ? data.customerAddress : undefined,
+      customerName: data.name,
+      customerAddress: data.prePopulated ? data.companyAddress : undefined,
     });
     onNext();
   };
@@ -79,12 +80,12 @@ export const Stage1CustomerInfo: React.FC<Stage1CustomerInfoProps> = ({ onNext }
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={methods.control}
-              name="customerName"
+              name="name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Customer Name *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter customer name" {...field} />
+                    <Input placeholder="Enter or search for your customer's name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -93,7 +94,7 @@ export const Stage1CustomerInfo: React.FC<Stage1CustomerInfoProps> = ({ onNext }
 
             <FormField
               control={methods.control}
-              name="prePopulateCustomerInformation"
+              name="prePopulated"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                   <FormControl>
@@ -111,13 +112,13 @@ export const Stage1CustomerInfo: React.FC<Stage1CustomerInfoProps> = ({ onNext }
               )}
             />
 
-            {prePopulateCustomerInformation && (
+            {prePopulated && (
               <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
                 <h3 className="text-lg font-medium">Customer Address</h3>
                 
                 <FormField
                   control={methods.control}
-                  name="customerAddress.addressLine1"
+                  name="companyAddress.addressLine1"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Address Line 1 *</FormLabel>
@@ -131,7 +132,7 @@ export const Stage1CustomerInfo: React.FC<Stage1CustomerInfoProps> = ({ onNext }
 
                 <FormField
                   control={methods.control}
-                  name="customerAddress.addressLine2"
+                  name="companyAddress.addressLine2"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Address Line 2</FormLabel>
@@ -146,7 +147,7 @@ export const Stage1CustomerInfo: React.FC<Stage1CustomerInfoProps> = ({ onNext }
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={methods.control}
-                    name="customerAddress.city"
+                    name="companyAddress.city"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>City *</FormLabel>
@@ -160,7 +161,7 @@ export const Stage1CustomerInfo: React.FC<Stage1CustomerInfoProps> = ({ onNext }
 
                   <FormField
                     control={methods.control}
-                    name="customerAddress.state"
+                    name="companyAddress.state"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>State *</FormLabel>
@@ -186,7 +187,7 @@ export const Stage1CustomerInfo: React.FC<Stage1CustomerInfoProps> = ({ onNext }
 
                 <FormField
                   control={methods.control}
-                  name="customerAddress.zipCode"
+                  name="companyAddress.zipCode"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>ZIP Code *</FormLabel>

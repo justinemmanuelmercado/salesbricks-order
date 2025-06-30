@@ -1,4 +1,4 @@
-import type { Product } from '@/types/order';
+import type { Product, AddOn } from '@/types/order';
 
 export const PRODUCTS: Product[] = [
   {
@@ -63,5 +63,38 @@ export const PRODUCTS: Product[] = [
         defaultPrice: 199,
       },
     ],
+  },
+];
+
+export const ADD_ONS: AddOn[] = [
+  {
+    id: 'advanced-reporting',
+    name: 'Advanced Reporting',
+    price: 15,
+    priceLabel: '$15/mo per user',
+  },
+  {
+    id: 'api-access',
+    name: 'API Access',
+    price: 25,
+    priceLabel: '$25/mo per integration',
+  },
+  {
+    id: 'priority-support',
+    name: 'Priority Support',
+    price: 10,
+    priceLabel: '$10/mo per user',
+  },
+  {
+    id: 'data-backup',
+    name: 'Enhanced Data Backup',
+    price: 20,
+    priceLabel: '$20/mo per account',
+  },
+  {
+    id: 'custom-integrations',
+    name: 'Custom Integrations',
+    price: 50,
+    priceLabel: '$50/mo per integration',
   },
 ]; 
